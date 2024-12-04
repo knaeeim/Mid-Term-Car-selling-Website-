@@ -6,6 +6,7 @@ from .forms import *
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.views.generic import CreateView, UpdateView, DetailView
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 class AddCarView(CreateView):
@@ -123,12 +124,16 @@ class DetailsPostView(DetailView):
         context['form'] = form
         return context
 
+@login_required
 def buy_now(request, id):
     if not request.user.is_authenticated:
         return redirect('login')
     
     car = CarModel.objects.get(id=id)
     if car:
+        if car.quantity <= 0:
+            messages.warning(request, 'Car not available')
+            return redirect('profile')
         car.quantity -=1 
         car.save()
         BuyNow.objects.create(car=car, user=request.user).save()
